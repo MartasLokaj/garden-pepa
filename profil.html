@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gardener Profile - Garden Pepa</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .modal-content {
+      animation: fadeIn 0.3s ease-out;
+    }
+    
+    .price-item {
+      animation: slideIn 0.4s ease-out;
+      animation-fill-mode: both;
+    }
+    
+    .price-item:nth-child(1) { animation-delay: 0.1s; }
+    .price-item:nth-child(2) { animation-delay: 0.2s; }
+    .price-item:nth-child(3) { animation-delay: 0.3s; }
+    .price-item:nth-child(4) { animation-delay: 0.4s; }
+    .price-item:nth-child(5) { animation-delay: 0.5s; }
+    .price-item:nth-child(6) { animation-delay: 0.6s; }
+    
+    .pricing-category {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+    
+    .price-tag {
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      transform: rotate(-2deg);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .hover-lift:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    .language-switcher {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.1);
+      padding: 4px;
+      border-radius: 8px;
+    }
+
+    .lang-btn {
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .lang-btn.active {
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+
+    .lang-btn:not(.active) {
+      opacity: 0.7;
+    }
+
+    .lang-btn:hover {
+      opacity: 1;
+      background: rgba(255,255,255,0.15);
+    }
+
+    .connection-status {
+      position: fixed;
+      top: 70px;
+      right: 20px;
+      padding: 6px 12px;
+      border-radius: 15px;
+      font-size: 11px;
+      font-weight: 500;
+      z-index: 1000;
+      transition: all 0.3s;
+    }
+
+    .status-online {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-offline {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .loading-spinner {
+      animation: spin 1s linear infinite;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #10b981;
+      border-radius: 50%;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center p-6">
+
+  <!-- Connection Status -->
+  <div id="connectionStatus" class="connection-status status-offline">
+    <span id="statusText">Připojování...</span>
+  </div>
+
+  <!-- Header -->
+  <header class="bg-green-600 text-white shadow-lg p-4 flex items-center justify-between w-full mb-6">
+    <div class="flex items-center space-x-4">
+      <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-xl">🌱</div>
+      <h1 class="text-3xl font-bold">Garden Pepa</h1>
+    </div>
+    
+    <!-- Language Switcher -->
+    <div class="language-switcher">
+      <span class="lang-btn" data-lang="cs">🇨🇿 CZ</span>
+      <span class="lang-btn" data-lang="en">🇬🇧 EN</span>
+    </div>
+  </header>
+
+  <!-- Loading indicator -->
+  <div id="loadingIndicator" class="flex items-center justify-center mb-4">
+    <div class="loading-spinner mr-2"></div>
+    <span data-i18n="loading.gardeners">Načítání zahradníků...</span>
+  </div>
+
+  <!-- Dropdown to select profile -->
+  <select id="profileSelector" class="border p-2 rounded-lg mb-6 w-full max-w-3xl text-xl shadow-md focus:ring-2 focus:ring-green-500 focus:border-transparent">
+    <option value="" data-i18n="profile.selectGardener">Vyberte zahradníka...</option>
+  </select>
+
+  <!-- Profile card -->
+  <div id="profileCard" class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-3xl text-center hidden">
+
+    <!-- Photo -->
+    <img id="profilePhoto" 
+         src="" 
+         alt="Profile photo" 
+         class="w-72 h-72 rounded-full mx-auto shadow-lg border-4 border-green-200 cursor-pointer hover-lift transition-all duration-300"
+         onclick="showPhoto(this.src)" />
+
+    <!-- Text info -->
+    <h2 id="profileName" class="text-4xl font-bold mt-6 text-gray-800"></h2>
+    <p id="profileCity" class="text-2xl mt-2 text-gray-600"></p>
+
+    <div class="mt-6 text-xl text-gray-700 space-y-3">
+      <p id="profileExp" class="font-semibold text-green-600"></p>
+      <div id="profileDescription" class="bg-green-50 p-4 rounded-lg text-gray-700 leading-relaxed"></div>
+      <p id="profileTime" class="italic"></p>
+      <p id="profileContact" class="font-medium"></p>
+      <p id="profileIdCard" class="text-gray-600 text-sm"></p>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+      <button id="showPricingBtn" class="bg-blue-600 text-white px-8 py-4 rounded-lg shadow-md hover:bg-blue-700 transition text-xl font-semibold hover-lift" data-i18n="profile.viewPricing">
+        💰 Zobrazit ceník
+      </button>
+      
+      <button id="openChatBtn" class="bg-green-600 text-white px-8 py-4 rounded-lg shadow-md hover:bg-green-700 transition text-xl font-semibold hover-lift" data-i18n="profile.contactEma">
+        💬 Kontaktovat hlavní zahradnici Emu
+      </button>
+    </div>
+
+    <a href="index.html" class="block mt-6 text-green-600 underline text-xl hover:text-green-800 transition" data-i18n="profile.backToMap">← Zpět na mapu</a>
+  </div>
+
+  <!-- Pricing Modal -->
+  <div id="pricingModal" class="fixed inset-0 bg-black bg-opacity-70 hidden flex items-center justify-center z-50 p-4">
+    <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      
+      <!-- Modal Header -->
+      <div class="pricing-category text-white p-6 rounded-t-2xl relative">
+        <button id="closePricingBtn" class="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl font-bold">&times;</button>
+        <h3 class="text-3xl font-bold text-center" data-i18n="pricing.title">🌿 Ceník zahradních služeb</h3>
+        <p class="text-center text-lg mt-2 opacity-90" data-i18n="pricing.subtitle">Profesionální zahradní služby za férové ceny</p>
+      </div>
+
+      <!-- Pricing Content -->
+      <div class="p-6">
+        
+        <!-- Basic Services -->
+        <div class="mb-8">
+          <h4 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+            🏡 <span class="ml-2" data-i18n="pricing.basic.title">Základní údržba zahrady</span>
+          </h4>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="price-item bg-gray-50 p-4 rounded-lg hover-lift transition-all duration-300">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h5 class="font-semibold text-lg" data-i18n="pricing.basic.mowing">Sekání trávy</h5>
+                  <p class="text-gray-600 text-sm" data-i18n="pricing.basic.mowingDesc">Malé až střední zahrady</p>
+                </div>
+                <div class="price-tag text-white px-3 py-2 rounded-lg font-bold">
+                  500-800 CZK
+                </div>
+              </div>
+            </div>
+            
+            <div class="price-item bg-gray-50 p-4 rounded-lg hover-lift transition-all duration-300">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h5 class="font-semibold text-lg" data-i18n="pricing.basic.weeding">Plení a úklid</h5>
+                  <p class="text-gray-600 text-sm" data-i18n="pricing.basic.weedingDesc">Odstranění plevele, základní úklid</p>
+                </div>
+                <div class="price-tag text-white px-3 py-2 rounded-lg font-bold">
+                  300-600 CZK
+                </div>
+              </div>
+            </div>
+            
+            <div class="price-item bg-gray-50 p-4 rounded-lg hover-lift transition-all duration-300">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h5 class="font-semibold text-lg" data-i18n="pricing.basic.watering">Zalévání</h5>
+                  <p class="text-gray-600 text-sm" data-i18n="pricing.basic.wateringDesc">Denní péče během vaší nepřítomnosti</p>
+                </div>
+                <div class="price-tag text-white px-3 py-2 rounded-lg font-bold">
+                  <span data-i18n="pricing.basic.wateringPrice">150 CZK/den</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="price-item bg-gray-50 p-4 rounded-lg hover-lift transition-all duration-300">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h5 class="font-semibold text-lg" data-i18n="pricing.basic.hedgeTrimming">Stříhání živých plotů</h5>
+                  <p class="text-gray-600 text-sm" data-i18n="pricing.basic.hedgeTrimmingDesc">Malé ploty a keře</p>
+                </div>
+                <div class="price-tag text-white px-3 py-2 rounded-lg font-bold">
+                  400-700 CZK
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Advanced Services -->
+        <div class="mb-8">
+          <h4 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+            🌸 <span class="ml-2" data-i18n="pricing.advanced.title">Specializované služby</span>
+          </h4>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="price-item bg-gray-50 p-4 rounded-lg hover-lift transition-all duration-300">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h5 class="font-semibold text-lg" data-i18n="pricing.advanced.flowerBed">Návrh květinových záhonů</h5>
+                  <p class="text-gray-600 text-sm" data-i18n="pricing.advanced.flowerBedDesc">Plánování a výsadba</p>
+                </div>
+                <div class="price-tag text-white px-3 py-2 rounded-lg font-bold">
+                  1200-2000 CZK
+                </div>
+              </div>
+            </div>
+            
+            <div class="price-item bg-gray-50 p-4 rounded-lg hover-lift transition-all duration-300">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h5 class="font-semibold text-lg" data-i18n="pricing.advanced.treePruning">Řez stromů</h5>
+                  <p class="text-gray-600 text-sm" data-i18n="pricing.advanced.treePruningDesc">Malé až střední stromy</p>
+                </div>
+                <div class="price-tag text-white px-3 py-2 rounded-lg font-bold">
+                  800-1500 CZK
+                </div>
+              </div>
+            </div>
+            
+            <div class="price-item bg-gray-50 p-4 rounded-lg hover-lift transition-all duration-300">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h5 class="font-semibold text-lg" data-i18n="pricing.advanced.seasonalCleanup">Sezónní úklid</h5>
+                  <p class="text-gray-600 text-sm" data-i18n="pricing.advanced.seasonalCleanupDesc">Jarní/podzimní příprava zahrady</p>
+                </div>
+                <div class="price-tag text-white px-3 py-2 rounded-lg font-bold">
+                  1000-1800 CZK
+                </div>
+              </div>
+            </div>
+            
+            <div class="price-item bg-gray-50 p-4 rounded-lg hover-lift transition-all duration-300">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h5 class="font-semibold text-lg" data-i18n="pricing.advanced.vegetableGarden">Zřízení zeleninové zahrádky</h5>
+                  <p class="text-gray-600 text-sm" data-i18n="pricing.advanced.vegetableGardenDesc">Příprava půdy a výsadba</p>
+                </div>
+                <div class="price-tag text-white px-3 py-2 rounded-lg font-bold">
+                  1500-2500 CZK
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Package Deals -->
+        <div class="mb-6">
+          <h4 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+            📦 <span class="ml-2" data-i18n="pricing.packages.title">Balíčkové nabídky</span>
+          </h4>
+          <div class="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg">
+            <div class="grid md:grid-cols-3 gap-4">
+              <div class="text-center p-4 bg-white rounded-lg shadow-sm hover-lift transition-all duration-300">
+                <h5 class="font-bold text-lg text-green-600" data-i18n="pricing.packages.weekly">Týdenní péče</h5>
+                <p class="text-sm text-gray-600 my-2" data-i18n="pricing.packages.weeklyDesc">Sekání + základní údržba</p>
+                <div class="text-2xl font-bold text-blue-600">1200 CZK/<span data-i18n="pricing.packages.weeklyPeriod">týden</span></div>
+                <p class="text-xs text-gray-500 mt-1" data-i18n="pricing.packages.weeklySave">Ušetříte 20%</p>
+              </div>
+              
+              <div class="text-center p-4 bg-white rounded-lg shadow-sm hover-lift transition-all duration-300">
+                <h5 class="font-bold text-lg text-green-600" data-i18n="pricing.packages.monthly">Měsíční komplexní služba</h5>
+                <p class="text-sm text-gray-600 my-2" data-i18n="pricing.packages.monthlyDesc">Kompletní péče o zahradu</p>
+                <div class="text-2xl font-bold text-blue-600">4500 CZK/<span data-i18n="pricing.packages.monthlyPeriod">měsíc</span></div>
+                <p class="text-xs text-gray-500 mt-1" data-i18n="pricing.packages.monthlySave">Ušetříte 25%</p>
+              </div>
+              
+              <div class="text-center p-4 bg-white rounded-lg shadow-sm hover-lift transition-all duration-300">
+                <h5 class="font-bold text-lg text-green-600" data-i18n="pricing.packages.seasonal">Sezónní balíček</h5>
+                <p class="text-sm text-gray-600 my-2" data-i18n="pricing.packages.seasonalDesc">Jarní příprava + letní péče</p>
+                <div class="text-2xl font-bold text-blue-600">8000 CZK/<span data-i18n="pricing.packages.seasonalPeriod">sezóna</span></div>
+                <p class="text-xs text-gray-500 mt-1" data-i18n="pricing.packages.seasonalSave">Nejlepší hodnota!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Info -->
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <span class="text-2xl">💡</span>
+            </div>
+            <div class="ml-3">
+              <h5 class="font-semibold text-lg" data-i18n="pricing.notes.title">Důležité poznámky:</h5>
+              <ul class="mt-2 text-sm text-gray-700 space-y-1">
+                <li data-i18n="pricing.notes.note1">• Ceny se mohou lišit podle velikosti a stavu zahrady</li>
+                <li data-i18n="pricing.notes.note2">• Bezplatná konzultace a nabídka pro projekty nad 2000 CZK</li>
+                <li data-i18n="pricing.notes.note3">• Cestovní náklady zahrnuty v okruhu 15km</li>
+                <li data-i18n="pricing.notes.note4">• Materiál a rostliny se účtují zvlášť</li>
+                <li data-i18n="pricing.notes.note5">• Slevy pro seniory k dispozici - zeptejte se!</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact CTA -->
+        <div class="mt-6 text-center">
+          <button id="contactForQuoteBtn" class="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-green-700 transition hover-lift" data-i18n="pricing.getQuote">
+            Získat nabídku na míru 📞
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat overlay -->
+  <div id="chatOverlay" class="fixed inset-0 bg-black bg-opacity-70 hidden flex items-center justify-center z-50 p-4">
+    <div class="modal-content bg-white rounded-2xl shadow-lg w-full max-w-3xl flex flex-col h-[80vh]">
+
+      <div class="flex justify-between items-center p-6 border-b">
+        <h3 class="text-2xl font-bold flex-1 text-center text-gray-800" data-i18n="chat.title">💬 Chat s Emou 🌱</h3>
+        <button id="clearChatBtn" class="ml-2 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition" data-i18n="chat.clear">Vymazat</button>
+      </div>
+
+      <!-- Chat messages -->
+      <div id="chatMessages" class="flex-1 overflow-y-auto p-4 bg-gray-50"></div>
+
+      <!-- Input and send button -->
+      <div class="p-4 border-t bg-white">
+        <div class="flex gap-2">
+          <input id="chatInput" type="text" class="flex-1 border p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" data-i18n-placeholder="chat.inputPlaceholder">
+          <button id="sendBtn" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold" data-i18n="chat.send">Odeslat</button>
+        </div>
+        <button id="closeChatBtn" class="mt-3 w-full bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg text-lg transition" data-i18n="chat.close">Zavřít chat</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // JSONBin.io Configuration - same as index.html
+    const JSONBIN_API_KEY = '$2a$10$w8zeP5M3BNn7SmkEZjoL/O51Qv2bhbg.xTn4ar3o1BIlmbATBiJle';
+    const JSONBIN_BIN_ID = '68c5a186ae596e708feda8cf';
+    const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+
+    let isOnline = false;
+
+    // Test JSONBin connection
+    async function testConnection() {
+      try {
+        const response = await fetch(JSONBIN_URL + '/latest', {
+          method: 'GET',
+          headers: {
+            'X-Master-Key': JSONBIN_API_KEY,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          isOnline = true;
+          updateConnectionStatus(true);
+          return true;
+        }
+      } catch (error) {
+        console.error('JSONBin connection failed:', error);
+      }
+      
+      isOnline = false;
+      updateConnectionStatus(false);
+      return false;
+    }
+
+    function updateConnectionStatus(online) {
+      const statusEl = document.getElementById('connectionStatus');
+      const textEl = document.getElementById('statusText');
+      
+      if (online) {
+        statusEl.className = 'connection-status status-online';
+        textEl.textContent = currentLanguage === 'cs' ? '🌐 Online' : '🌐 Online';
+      } else {
+        statusEl.className = 'connection-status status-offline';
+        textEl.textContent = currentLanguage === 'cs' ? '📱 Offline' : '📱 Offline';
+      }
+    }
+
+    // Translations
+    const translations = {
+      cs: {
+        'loading.gardeners': 'Načítání zahradníků...',
+        'profile.selectGardener': 'Vyberte zahradníka...',
+        'profile.viewPricing': '💰 Zobrazit ceník',
+        'profile.contactEma': '💬 Kontaktovat hlavní zahradnici Emu',
+        'profile.backToMap': '← Zpět na mapu',
+        'profile.noGardeners': 'Žádní zahradníci nenalezeni - přidejte nějaké na hlavní stránce!',
+        'profile.experience': 'let zkušeností',
+        'profile.availability': '🕒 Dostupnost: ',
+        'profile.contact': '📞 Kontakt: ',
+        'profile.idCard': 'ID: ',
+        
+        'pricing.title': '🌿 Ceník zahradních služeb',
+        'pricing.subtitle': 'Profesionální zahradní služby za férové ceny',
+        'pricing.basic.title': 'Základní údržba zahrady',
+        'pricing.basic.mowing': 'Sekání trávy',
+        'pricing.basic.mowingDesc': 'Malé až střední zahrady',
+        'pricing.basic.weeding': 'Plení a úklid',
+        'pricing.basic.weedingDesc': 'Odstranění plevele, základní úklid',
+        'pricing.basic.watering': 'Zalévání',
+        'pricing.basic.wateringDesc': 'Denní péče během vaší nepřítomnosti',
+        'pricing.basic.wateringPrice': '150 CZK/den',
+        'pricing.basic.hedgeTrimming': 'Stříhání živých plotů',
+        'pricing.basic.hedgeTrimmingDesc': 'Malé ploty a keře',
+        
+        'pricing.advanced.title': 'Specializované služby',
+        'pricing.advanced.flowerBed': 'Návrh květinových záhonů',
+        'pricing.advanced.flowerBedDesc': 'Plánování a výsadba',
+        'pricing.advanced.treePruning': 'Řez stromů',
+        'pricing.advanced.treePruningDesc': 'Malé až střední stromy',
+        'pricing.advanced.seasonalCleanup': 'Sezónní úklid',
+        'pricing.advanced.seasonalCleanupDesc': 'Jarní/podzimní příprava zahrady',
+        'pricing.advanced.vegetableGarden': 'Zřízení zeleninové zahrádky',
+        'pricing.advanced.vegetableGardenDesc': 'Příprava půdy a výsadba',
+        
+        'pricing.packages.title': 'Balíčkové nabídky',
+        'pricing.packages.weekly': 'Týdenní péče',
+        'pricing.packages.weeklyDesc': 'Sekání + základní údržba',
+        'pricing.packages.weeklyPeriod': 'týden',
+        'pricing.packages.weeklySave': 'Ušetříte 20%',
+        'pricing.packages.monthly': 'Měsíční komplexní služba',
+        'pricing.packages.monthlyDesc': 'Kompletní péče o zahradu',
+        'pricing.packages.monthlyPeriod': 'měsíc',
+        'pricing.packages.monthlySave': 'Ušetříte 25%',
+        'pricing.packages.seasonal': 'Sezónní balíček',
+        'pricing.packages.seasonalDesc': 'Jarní příprava + letní péče',
+        'pricing.packages.seasonalPeriod': 'sezóna',
+        'pricing.packages.seasonalSave': 'Nejlepší hodnota!',
+        
+        'pricing.notes.title': 'Důležité poznámky:',
+        'pricing.notes.note1': '• Ceny se mohou lišit podle velikosti a stavu zahrady',
+        'pricing.notes.note2': '• Bezplatná konzultace a nabídka pro projekty nad 2000 CZK',
+        'pricing.notes.note3': '• Cestovní náklady zahrnuty v okruhu 15km',
+        'pricing.notes.note4': '• Materiál a rostliny se účtují zvlášť',
+        'pricing.notes.note5': '• Slevy pro seniory k dispozici - zeptejte se!',
+        'pricing.getQuote': 'Získat nabídku na míru 📞',
+        
+        'chat.title': '💬 Chat s Emou 🌱',
+        'chat.clear': 'Vymazat',
+        'chat.inputPlaceholder': 'Napište zprávu...',
+        'chat.send': 'Odeslat',
+        'chat.close': 'Zavřít chat',
+        'chat.clearConfirm': 'Opravdu chcete vymazat všechny zprávy?',
+        'chat.typing': 'Ema píše...',
+        'chat.welcome': '👋 Ahoj! Jsem Ema, vaše zahradní pomocnice. Klidně se mě ptejte na ceník, služby nebo cokoliv zahradního!',
+        
+        // Chat responses
+        'chat.price': '💰 Ceny se liší podle služby! Základní sekání začíná na 500 CZK. Chcete konkrétní nabídku pro vaši zahradu?',
+        'chat.lawn': '🟢 Sekání trávy stojí 500-800 CZK podle velikosti. Můj oblíbený projekt!',
+        'chat.flower': '🌸 Krásné květiny jsou moje specialita! Návrh květinového záhonu začíná na 1200 CZK.',
+        'chat.tree': '🌳 Řez stromů stojí 800-1500 CZK podle velikosti. Miluju práci se stromy!',
+        'chat.weed': '🌿 Plení a úklid stojí 300-600 CZK. Udělám vaši zahradu dokonale čistou!',
+        'chat.package': '📦 Nabízím skvělé balíčkové nabídky! Týdenní péče je 1200 CZK/týden a ušetříte 20%. Chcete vědět víc?',
+        'chat.complaint': 'Moc mě mrzí, že to slyším. Pustím se do práce co nejdříve, abych vaše problémy vyřešila. Kontaktujte mě na emca@gardenpepa.cz s celou stížností.',
+        'chat.hello': '👋 Ahoj! Jsem Ema, vaše přátelská zahradní expertka. Jak vám dnes mohu pomoci udělat vaši zahradu krásnou?',
+        'chat.help': '🤝 Jsem tu, abych pomohla! Umím sekat, plít, sázet, stříhat a mnoho dalšího. Co vaše zahrada potřebuje?',
+        'chat.when': '📅 Většinou jsem k dispozici ve všední dny i víkendy. Kdy by vám to vyhovovalo?',
+        'chat.default1': '🌱 To zní jako skvělý zahradní projekt!',
+        'chat.default2': '✨ Ráda vám s tím pomůžu!',
+        'chat.default3': '🌿 Řekněte mi víc o tom, co pro vaši zahradu potřebujete.',
+        'chat.default4': '💚 Miluju pomáhat lidem vytvářet krásné zahrady!',
+        'chat.default5': '🌸 Každá zahrada si zaslouží zvláštní péči!'
+      },
+      
+      en: {
+        'loading.gardeners': 'Loading gardeners...',
+        'profile.selectGardener': 'Select a gardener...',
+        'profile.viewPricing': '💰 View Pricing',
+        'profile.contactEma': '💬 Contact Main Gardener Ema',
+        'profile.backToMap': '← Back to Map',
+        'profile.noGardeners': 'No gardeners found - add some on the main page!',
+        'profile.experience': 'years of experience',
+        'profile.availability': '🕒 Availability: ',
+        'profile.contact': '📞 Contact: ',
+        'profile.idCard': 'ID: ',
+        
+        'pricing.title': '🌿 Garden Services Pricing',
+        'pricing.subtitle': 'Professional gardening services at fair prices',
+        'pricing.basic.title': 'Basic Garden Maintenance',
+        'pricing.basic.mowing': 'Lawn Mowing',
+        'pricing.basic.mowingDesc': 'Small to medium yards',
+        'pricing.basic.weeding': 'Weeding & Cleanup',
+        'pricing.basic.weedingDesc': 'Remove weeds, basic tidying',
+        'pricing.basic.watering': 'Watering Service',
+        'pricing.basic.wateringDesc': 'Daily care while you\'re away',
+        'pricing.basic.wateringPrice': '150 CZK/day',
+        'pricing.basic.hedgeTrimming': 'Hedge Trimming',
+        'pricing.basic.hedgeTrimmingDesc': 'Small hedges and bushes',
+        
+        'pricing.advanced.title': 'Specialized Services',
+        'pricing.advanced.flowerBed': 'Flower Bed Design',
+        'pricing.advanced.flowerBedDesc': 'Planning and planting',
+        'pricing.advanced.treePruning': 'Tree Pruning',
+        'pricing.advanced.treePruningDesc': 'Small to medium trees',
+        'pricing.advanced.seasonalCleanup': 'Seasonal Cleanup',
+        'pricing.advanced.seasonalCleanupDesc': 'Spring/fall garden preparation',
+        'pricing.advanced.vegetableGarden': 'Vegetable Garden Setup',
+        'pricing.advanced.vegetableGardenDesc': 'Soil prep and planting',
+        
+        'pricing.packages.title': 'Package Deals',
+        'pricing.packages.weekly': 'Weekly Care',
+        'pricing.packages.weeklyDesc': 'Mowing + basic maintenance',
+        'pricing.packages.weeklyPeriod': 'week',
+        'pricing.packages.weeklySave': 'Save 20%',
+        'pricing.packages.monthly': 'Monthly Full Service',
+        'pricing.packages.monthlyDesc': 'Complete garden care',
+        'pricing.packages.monthlyPeriod': 'month',
+        'pricing.packages.monthlySave': 'Save 25%',
+        'pricing.packages.seasonal': 'Seasonal Package',
+        'pricing.packages.seasonalDesc': 'Spring setup + summer care',
+        'pricing.packages.seasonalPeriod': 'season',
+        'pricing.packages.seasonalSave': 'Best Value!',
+        
+        'pricing.notes.title': 'Important Notes:',
+        'pricing.notes.note1': '• Prices may vary based on garden size and condition',
+        'pricing.notes.note2': '• Free consultation and quote for projects over 2000 CZK',
+        'pricing.notes.note3': '• Travel costs included within 15km radius',
+        'pricing.notes.note4': '• Materials and plants charged separately',
+        'pricing.notes.note5': '• Senior discounts available - ask for details!',
+        'pricing.getQuote': 'Get Custom Quote 📞',
+        
+        'chat.title': '💬 Chat with Ema 🌱',
+        'chat.clear': 'Clear',
+        'chat.inputPlaceholder': 'Write a message...',
+        'chat.send': 'Send',
+        'chat.close': 'Close Chat',
+        'chat.clearConfirm': 'Are you sure you want to clear all chat messages?',
+        'chat.typing': 'Ema is typing...',
+        'chat.welcome': '👋 Hi there! I\'m Ema, your garden helper. Feel free to ask me about pricing, services, or anything garden-related!',
+        
+        // Chat responses
+        'chat.price': '💰 Prices vary by service! Basic mowing starts at 500 CZK. Would you like me to give you a specific quote for your garden?',
+        'chat.lawn': '🟢 Lawn mowing is 500-800 CZK depending on size. My favorite project!',
+        'chat.flower': '🌸 Beautiful flowers are my specialty! Flower bed design starts at 1200 CZK.',
+        'chat.tree': '🌳 Tree pruning is 800-1500 CZK depending on size. I love working with trees!',
+        'chat.weed': '🌿 Weeding and cleanup is 300-600 CZK. I\'ll make your garden spotless!',
+        'chat.package': '📦 I offer great package deals! Weekly care is 1200 CZK/week and you save 20%. Want to know more?',
+        'chat.complaint': 'I am really sorry to hear that. I will get to work as soon as possible to fix your problems. Contact me at emca@gardenpepa.cz with the whole complaint.',
+        'chat.hello': '👋 Hello! I\'m Ema, your friendly garden expert. How can I help make your garden beautiful today?',
+        'chat.help': '🤝 I\'m here to help! I can do mowing, weeding, planting, pruning, and much more. What does your garden need?',
+        'chat.when': '📅 I\'m usually available weekdays and weekends. When would work best for you?',
+        'chat.default1': '🌱 That sounds like a great garden project!',
+        'chat.default2': '✨ I\'d be happy to help with that!',
+        'chat.default3': '🌿 Tell me more about what you need for your garden.',
+        'chat.default4': '💚 I love helping people create beautiful gardens!',
+        'chat.default5': '🌸 Every garden deserves special care!'
+      }
+    };
+
+    // Language management
+    let currentLanguage = localStorage.getItem('gardenPepaLanguage') || 'cs';
+
+    function setLanguage(lang) {
+      currentLanguage = lang;
+      localStorage.setItem('gardenPepaLanguage', lang);
+      document.documentElement.lang = lang;
+      
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+      });
+      
+      updateTranslations();
+      updateConnectionStatus(isOnline);
+      populateDropdown();
+    }
+
+    function updateTranslations() {
+      document.querySelectorAll('[data-i18n]').forEach(element => {
+        const key = element.getAttribute('data-i18n');
+        if (translations[currentLanguage] && translations[currentLanguage][key]) {
+          element.textContent = translations[currentLanguage][key];
+        }
+      });
+      
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+        const key = element.getAttribute('data-i18n-placeholder');
+        if (translations[currentLanguage] && translations[currentLanguage][key]) {
+          element.placeholder = translations[currentLanguage][key];
+        }
+      });
+    }
+
+    function t(key) {
+      return translations[currentLanguage] && translations[currentLanguage][key] 
+        ? translations[currentLanguage][key] 
+        : key;
+    }
+
+    // JSONBin.io functions
+    async function loadGardenersFromJSONBin() {
+      if (!isOnline) return [];
+      
+      try {
+        const response = await fetch(JSONBIN_URL + '/latest', {
+          method: 'GET',
+          headers: {
+            'X-Master-Key': JSONBIN_API_KEY,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          return data.record || [];
+        }
+      } catch (error) {
+        console.error('Failed to load from JSONBin:', error);
+      }
+      
+      return [];
+    }
+
+    // Language switcher event listeners
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setLanguage(btn.dataset.lang);
+      });
+    });
+
+    // Show photo in lightbox
+    function showPhoto(url) {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 cursor-zoom-out';
+      modal.innerHTML = `
+        <div class="relative">
+          <img src="${url}" class="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl">
+          <button class="absolute top-2 right-2 text-white text-3xl font-bold hover:text-gray-300">&times;</button>
+        </div>
+      `;
+      modal.addEventListener('click', () => modal.remove());
+      document.body.appendChild(modal);
+    }
+
+    // Load profiles
+    const profileSelector = document.getElementById('profileSelector');
+    const profileCard = document.getElementById('profileCard');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    let profiles = [];
+
+    async function loadProfiles() {
+      loadingIndicator.style.display = 'flex';
+      
+      // Test connection first
+      await testConnection();
+      
+      try {
+        if (isOnline) {
+          profiles = await loadGardenersFromJSONBin();
+          console.log('Loaded from JSONBin:', profiles.length, 'gardeners');
+        }
+        
+        // Fallback to localStorage if no online data
+        if (profiles.length === 0) {
+          profiles = JSON.parse(localStorage.getItem('gardeners')) || [];
+          console.log('Loaded from localStorage:', profiles.length, 'gardeners');
+        }
+        
+        populateDropdown();
+        
+      } catch (error) {
+        console.error('Error loading profiles:', error);
+        profiles = JSON.parse(localStorage.getItem('gardeners')) || [];
+        populateDropdown();
+      } finally {
+        loadingIndicator.style.display = 'none';
+      }
+    }
+
+    function populateDropdown() {
+      profileSelector.innerHTML = `<option value="">${t('profile.selectGardener')}</option>`;
+      
+      if (profiles.length === 0) {
+        profileSelector.innerHTML = `<option value="">${t('profile.noGardeners')}</option>`;
+      } else {
+        profiles.forEach((p, index) => {
+          const option = document.createElement('option');
+          option.value = index;
+          option.textContent = p.name + " – " + p.city;
+          profileSelector.appendChild(option);
+        });
+      }
+    }
+
+    function showProfile(index) {
+      const p = profiles[index];
+      if (!p) {
+        profileCard.classList.add('hidden');
+        return;
+      }
+      
+      profileCard.classList.remove('hidden');
+      document.getElementById('profilePhoto').src = p.photo || 'https://via.placeholder.com/300x300/10b981/white?text=👨‍🌾';
+      document.getElementById('profileName').textContent = p.name;
+      document.getElementById('profileCity').textContent = p.city;
+      document.getElementById('profileExp').textContent = p.experience + " " + t('profile.experience');
+      
+      // Show description
+      const descriptionEl = document.getElementById('profileDescription');
+      if (p.description) {
+        descriptionEl.textContent = p.description;
+        descriptionEl.style.display = 'block';
+      } else {
+        descriptionEl.style.display = 'none';
+      }
+      
+      document.getElementById('profileTime').textContent = p.freeTime ? t('profile.availability') + p.freeTime : "";
+      document.getElementById('profileContact').textContent = p.contact ? t('profile.contact') + p.contact : "";
+      document.getElementById('profileIdCard').textContent = p.idCard ? t('profile.idCard') + p.idCard : "";
+      
+      // Handle image errors
+      document.getElementById('profilePhoto').onerror = function() {
+        this.src = 'https://via.placeholder.com/300x300/10b981/white?text=👨‍🌾';
+      };
+    }
+
+    profileSelector.addEventListener('change', (e) => {
+      if (e.target.value !== "") {
+        showProfile(parseInt(e.target.value));
+      } else {
+        profileCard.classList.add('hidden');
+      }
+    });
+
+    // Pricing Modal
+    const showPricingBtn = document.getElementById('showPricingBtn');
+    const pricingModal = document.getElementById('pricingModal');
+    const closePricingBtn = document.getElementById('closePricingBtn');
+    const contactForQuoteBtn = document.getElementById('contactForQuoteBtn');
+
+    showPricingBtn.addEventListener('click', () => {
+      pricingModal.classList.remove('hidden');
+    });
+
+    closePricingBtn.addEventListener('click', () => {
+      pricingModal.classList.add('hidden');
+    });
+
+    contactForQuoteBtn.addEventListener('click', () => {
+      pricingModal.classList.add('hidden');
+      chatOverlay.classList.remove('hidden');
+      loadChat();
+      setTimeout(() => {
+        addMessage('pepa', t('chat.price'));
+        saveChat('pepa', t('chat.price'));
+      }, 500);
+    });
+
+    // Close modal when clicking outside
+    pricingModal.addEventListener('click', (e) => {
+      if (e.target === pricingModal) {
+        pricingModal.classList.add('hidden');
+      }
+    });
+
+    // Chat functionality
+    const openChatBtn = document.getElementById('openChatBtn');
+    const chatOverlay = document.getElementById('chatOverlay');
+    const closeChatBtn = document.getElementById('closeChatBtn');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const clearChatBtn = document.getElementById('clearChatBtn');
+
+    openChatBtn.addEventListener('click', () => {
+      chatOverlay.classList.remove('hidden');
+      loadChat();
+      chatInput.focus();
+    });
+
+    closeChatBtn.addEventListener('click', () => chatOverlay.classList.add('hidden'));
+    
+    clearChatBtn.addEventListener('click', () => {
+      if (confirm(t('chat.clearConfirm'))) {
+        localStorage.removeItem('pepaChat');
+        chatMessages.innerHTML = '';
+      }
+    });
+
+    function addMessage(sender, text) {
+      const msg = document.createElement('div');
+      msg.className = sender === 'user' ? 'text-right mb-3' : 'text-left mb-3';
+      
+      const bubble = document.createElement('span');
+      bubble.className = `inline-block p-3 rounded-2xl max-w-xs lg:max-w-md ${
+        sender === 'user' 
+          ? 'bg-green-500 text-white rounded-br-none' 
+          : 'bg-white text-gray-800 shadow-md rounded-bl-none border'
+      }`;
+      bubble.textContent = text;
+      
+      msg.appendChild(bubble);
+      chatMessages.appendChild(msg);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function pepasReply(userMsg) {
+      const msg = userMsg.toLowerCase();
+      
+      // Pricing-related responses
+      if (msg.includes('price') || msg.includes('cost') || msg.includes('quote') || 
+          msg.includes('cena') || msg.includes('ceník') || msg.includes('nabídka')) {
+        return t('chat.price');
+      }
+      if (msg.includes('lawn') || msg.includes('mow') || msg.includes('tráva') || msg.includes('sekání')) {
+        return t('chat.lawn');
+      }
+      if (msg.includes('flower') || msg.includes('plant') || msg.includes('květina') || msg.includes('rostlina')) {
+        return t('chat.flower');
+      }
+      if (msg.includes('tree') || msg.includes('prune') || msg.includes('strom') || msg.includes('řez')) {
+        return t('chat.tree');
+      }
+      if (msg.includes('weed') || msg.includes('plevel') || msg.includes('plení')) {
+        return t('chat.weed');
+      }
+      if (msg.includes('package') || msg.includes('deal') || msg.includes('balíček') || msg.includes('nabídka')) {
+        return t('chat.package');
+      }
+      
+      // General responses
+      if (msg.includes('complaint') || msg.includes('stížnost')) {
+        return t('chat.complaint');
+      }
+      if (msg.includes('hello') || msg.includes('hi') || msg.includes('ahoj') || msg.includes('dobrý')) {
+        return t('chat.hello');
+      }
+      if (msg.includes('help') || msg.includes('pomoc')) {
+        return t('chat.help');
+      }
+      if (msg.includes('when') || msg.includes('available') || msg.includes('kdy') || msg.includes('dostupn')) {
+        return t('chat.when');
+      }
+      
+      // Default responses
+      const responses = [
+        t('chat.default1'),
+        t('chat.default2'),
+        t('chat.default3'),
+        t('chat.default4'),
+        t('chat.default5')
+      ];
+      return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', (e) => { if (e.key==='Enter') sendMessage(); });
+
+    function sendMessage() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+      
+      addMessage('user', text);
+      saveChat('user', text);
+      
+      // Show typing indicator
+      const typingMsg = document.createElement('div');
+      typingMsg.className = 'text-left mb-3 typing-indicator';
+      typingMsg.innerHTML = `<span class="inline-block bg-gray-200 p-3 rounded-2xl rounded-bl-none"><em>${t('chat.typing')}</em></span>`;
+      chatMessages.appendChild(typingMsg);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      
+      setTimeout(() => {
+        typingMsg.remove();
+        const reply = pepasReply(text);
+        addMessage('pepa', reply);
+        saveChat('pepa', reply);
+      }, 1000 + Math.random() * 1000);
+      
+      chatInput.value = '';
+    }
+
+    function saveChat(sender, text) {
+      let chatHistory = JSON.parse(localStorage.getItem('pepaChat')) || [];
+      chatHistory.push({sender, text, timestamp: new Date().toISOString()});
+      localStorage.setItem('pepaChat', JSON.stringify(chatHistory));
+    }
+
+    function loadChat() {
+      chatMessages.innerHTML = '';
+      const chatHistory = JSON.parse(localStorage.getItem('pepaChat')) || [];
+      
+      if (chatHistory.length === 0) {
+        addMessage('pepa', t('chat.welcome'));
+      } else {
+        chatHistory.forEach(msg => addMessage(msg.sender, msg.text));
+      }
+    }
+
+    // Close modals with Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        pricingModal.classList.add('hidden');
+        chatOverlay.classList.add('hidden');
+      }
+    });
+
+    // Initialize the app
+    async function initApp() {
+      setLanguage(currentLanguage);
+      await loadProfiles();
+      
+      // Show first profile by default if available
+      if (profiles.length > 0) {
+        profileSelector.selectedIndex = 1;
+        showProfile(0);
+      }
+    }
+
+    // Start the app
+    initApp();
+  </script>
+
+</body>
+</html>
